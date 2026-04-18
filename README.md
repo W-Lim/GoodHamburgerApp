@@ -78,10 +78,12 @@ Foi desenvolvida uma suíte de testes unitários que cobre os cenários crítico
 
 ## 📌 O que ficou fora (Out of Scope)
 
-Para manter o foco na simplicidade e nos requisitos centrais do desafio:
-- Persistência em banco de dados físico (SQL Server/PostgreSQL).
-- Autenticação e autorização de usuários (Login).
-- Integração com gateways de pagamento.
+Para manter o foco na simplicidade e nos requisitos centrais do desafio, os seguintes itens não foram implementados nesta versão:
+
+- **Persistência em Banco de Dados:** Uso de banco físico (SQL Server/PostgreSQL), mantendo os dados em memória (In-memory).
+- **Segurança:** Sistema de Autenticação e autorização de usuários (Login/Roles).
+- **Pagamentos:** Integração com gateways de pagamento reais ou PIX.
+- **Funcionalidades de Atendimento:** Registro do nome do cliente que realizou o pedido e a opção de escolha entre "Comer no Local" ou "Para Viagem".
 
 ---
 
