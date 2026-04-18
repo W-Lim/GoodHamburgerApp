@@ -1,0 +1,177 @@
+﻿@page "/pedidos"
+@using GoodHamburger.Models
+@inject HttpClient Http
+
+<div class="container-fluid py-4">
+    <!-- CABEÇALHO DA TELA -->
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+            <h2 class="fw-bold mb-0" style="color: #121212;">📋 Histórico de Pedidos</h2>
+            <p class="text-muted small mb-0">Gerencie e consulte todos os pedidos realizados.</p>
+        </div>
+        <button class="btn btn-dark fw-bold px-4 shadow-sm" style="border-radius: 10px;" @onclick="LoadOrders">
+            ATUALIZAR LISTA
+        </button>
+    </div>
+
+    <!-- BUSCA -->
+    <div class="row mb-4">
+        <div class="col-md-5">
+            <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                <span class="input-group-text bg-white border-0">🔍</span>
+                <input type="text" class="form-control border-0" placeholder="Buscar por ID do pedido..."
+                       @bind="searchTerm" @bind:event="oninput" />
+            </div>
+        </div>
+    </div>
+
+    @if (orders == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-2 text-muted">Acessando registros...</p>
+        </div>
+    }
+    else if (!FilteredOrders.Any())
+    {
+        <div class="card border-0 shadow-sm text-center py-5" style="border-radius: 20px;">
+            <p class="mb-0 text-muted">Nenhum pedido encontrado no sistema.</p>
+        </div>
+    }
+    else
+    {
+        <!-- TABELA ESTILIZADA GH -->
+        <div class="card border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: #121212; color: #ffc107;">
+                        <tr>
+                            <th class="ps-4 py-3">ID</th>
+                            <th class="py-3 text-uppercase small fw-bold">Qtd. Itens</th>
+                            <th class="py-3 text-uppercase small fw-bold">Total Pago</th>
+                            <th class="py-3 text-center text-uppercase small fw-bold">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in FilteredOrders)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark">#@o.Id</td>
+                                <td>@o.Items.Count item(s)</td>
+                                <td class="fw-bold text-success">R$ @o.Total.ToString("F2")</td>
+                                <td class="text-center">
+                                    <!-- BOTÃO DETALHES AMARELO -->
+                                    <button class="btn btn-warning btn-sm fw-bold me-2"
+                                            style="border-radius: 8px; font-size: 12px; padding: 6px 15px;"
+                                            @onclick="() => VerDetalhes(o)">
+                                        VER DETALHES
+                                    </button>
+                                    <!-- BOTÃO EXCLUIR PRETO/VERMELHO -->
+                                    <button class="btn btn-outline-danger btn-sm fw-bold"
+                                            style="border-radius: 8px; font-size: 12px; padding: 6px 15px;"
+                                            @onclick="() => ConfirmarExclusao(o)">
+                                        EXCLUIR
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- MODAL DETALHES (PADRÃO GH) -->
+@if (orderSelecionado != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.8);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
+                <div class="modal-header bg-dark text-white border-0" style="border-radius: 25px 25px 0 0; padding: 25px;">
+                    <h5 class="modal-title fw-bold">CONTEÚDO DO PEDIDO #@orderSelecionado.Id</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => orderSelecionado = null"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        @foreach (var item in orderSelecionado.Items)
+                        {
+                            <div class="d-flex justify-content-between mb-2 border-bottom pb-2">
+                                <span class="fw-bold">@item.Name</span>
+                                <span class="text-muted">R$ @item.Price.ToString("F2")</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="bg-light p-3 rounded-3 mt-4">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Subtotal:</span>
+                            <span>R$ @orderSelecionado.Subtotal.ToString("F2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between text-danger small mb-1">
+                            <span>Desconto aplicado:</span>
+                            <span>- R$ @orderSelecionado.Discount.ToString("F2")</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between fw-bold h5 mb-0 text-dark">
+                            <span>TOTAL FINAL:</span>
+                            <span>R$ @orderSelecionado.Total.ToString("F2")</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-dark w-100 mt-4 py-3 fw-bold shadow" style="border-radius: 15px;" @onclick="() => orderSelecionado = null">
+                        FECHAR DETALHES
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL CONFIRMAÇÃO EXCLUSÃO -->
+@if (orderParaExcluir != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.8);" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-body text-center p-4">
+                    <h2 class="mb-3 text-danger">⚠️</h2>
+                    <h5 class="fw-bold mb-3">Apagar registro?</h5>
+                    <p class="text-muted small">Deseja remover o pedido #@orderParaExcluir.Id permanentemente?</p>
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-light w-100 fw-bold" style="border-radius: 12px;" @onclick="() => orderParaExcluir = null">CANCELAR</button>
+                        <button class="btn btn-danger w-100 fw-bold" style="border-radius: 12px;" @onclick="DeleteOrder">SIM, EXCLUIR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Order>? orders;
+    private string searchTerm = "";
+    private Order? orderSelecionado;
+    private Order? orderParaExcluir;
+
+    protected override async Task OnInitializedAsync() => await LoadOrders();
+
+    private async Task LoadOrders() => orders = await Http.GetFromJsonAsync<List<Order>>("api/orders");
+
+    private IEnumerable<Order> FilteredOrders =>
+        string.IsNullOrWhiteSpace(searchTerm)
+        ? orders ?? new List<Order>()
+        : (orders ?? new List<Order>()).Where(o => o.Id.ToString().Contains(searchTerm));
+
+    private void VerDetalhes(Order o) => orderSelecionado = o;
+    private void ConfirmarExclusao(Order o) => orderParaExcluir = o;
+
+    private async Task DeleteOrder()
+    {
+        if (orderParaExcluir == null) return;
+        var response = await Http.DeleteAsync($"api/orders/{orderParaExcluir.Id}");
+        if (response.IsSuccessStatusCode)
+        {
+            orderParaExcluir = null;
+            await LoadOrders();
+        }
+    }
+}

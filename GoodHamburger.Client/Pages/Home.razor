@@ -1,0 +1,182 @@
+﻿@page "/"
+@using GoodHamburger.Models
+@inject HttpClient Http
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- CARDÁPIO -->
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-4">🍔 GH | Terminal de Vendas</h2>
+
+            @if (menu == null)
+            {
+                <div class="spinner-border text-warning"></div>
+            }
+            else
+            {
+                @foreach (var cat in new[] { "Sandwich", "Side", "Drink" })
+                {
+                    <h5 class="mt-4 mb-3 fw-bold text-muted text-uppercase small" style="letter-spacing:2px">@Traduzir(cat)</h5>
+                    <div class="row">
+                        @foreach (var item in menu.Where(m => m.Category == cat))
+                        {
+                            <div class="col-md-4 mb-4">
+                                <div class="card product-card p-3 shadow-sm border-0">
+                                    <div class="text-center">
+                                        <h1 class="mb-2">@GetEmoji(item.Category)</h1>
+                                        <h6 class="fw-bold mb-1">@item.Name</h6>
+                                        <p class="text-success fw-bold">R$ @item.Price.ToString("F2")</p>
+                                        <button class="btn btn-gh w-100 py-2" @onclick="() => AdicionarAoCarrinho(item)">ADICIONAR</button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- RESUMO DO PEDIDO COM CÁLCULO DE DESCONTO EM TEMPO REAL -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-lg sticky-top" style="top:20px; border-radius: 20px;">
+                <div class="card-header bg-dark text-white text-center py-3 fw-bold" style="border-radius: 20px 20px 0 0;">
+                    RESUMO DO PEDIDO
+                </div>
+                <div class="card-body p-4">
+                    @if (!carrinho.Any())
+                    {
+                        <div class="text-center py-5 opacity-50">
+                            <p>Aguardando itens...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-4" style="max-height: 280px; overflow-y: auto;">
+                            @foreach (var (item, index) in carrinho.Select((v, i) => (v, i)))
+                            {
+                                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                                    <div>
+                                        <div class="fw-bold small">@item.Name</div>
+                                        <div class="text-muted small">R$ @item.Price.ToString("F2")</div>
+                                    </div>
+                                    <button class="btn btn-sm text-danger small" @onclick="() => carrinho.RemoveAt(index)">Remover</button>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- PAINEL DE VALORES COM DESCONTO -->
+                        <div class="bg-light p-3 rounded-4">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>Subtotal:</span>
+                                <span>R$ @Subtotal.ToString("F2")</span>
+                            </div>
+
+                            @if (PercentualDesconto > 0)
+                            {
+                                <div class="d-flex justify-content-between text-danger small mb-1 fw-bold">
+                                    <span>Desconto (@(PercentualDesconto * 100)%):</span>
+                                    <span>- R$ @ValorDesconto.ToString("F2")</span>
+                                </div>
+                            }
+
+                            <hr class="my-2" />
+                            <div class="d-flex justify-content-between h4 fw-bold mb-0">
+                                <span>TOTAL:</span>
+                                <span>R$ @TotalFinal.ToString("F2")</span>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger py-2 mt-3 small border-0 shadow-sm">⚠️ @errorMessage</div>
+                        }
+
+                        <button class="btn btn-dark w-100 py-3 mt-4 fw-bold shadow text-uppercase" style="border-radius: 15px;" @onclick="Finalizar">
+                            Finalizar Agora
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- POPUP DE SUCESSO PADRONIZADO -->
+@if (mostrarSucesso)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,0.85); z-index: 9999;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 p-5 text-center" style="border-radius:30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
+                <div class="mb-4">
+                    <img src="https://cdn-icons-png.flaticon.com/512/5290/5290058.png" width="100" alt="Sucesso" />
+                </div>
+                <h2 class="fw-bold">Pedido Realizado!</h2>
+                <p class="text-muted">Pedido <strong>#@pedidoIdRecente</strong> foi enviado com sucesso para a cozinha.</p>
+                <button class="btn btn-gh fw-bold w-100 py-3 mt-3 shadow-sm text-uppercase" style="font-size: 1.1rem;" @onclick="() => mostrarSucesso = false">
+                    OK, NOVO PEDIDO
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<MenuItem>? menu;
+    private List<MenuItem> carrinho = new();
+    private string? errorMessage;
+    private bool mostrarSucesso = false;
+    private int pedidoIdRecente;
+
+    // LÓGICA DE CÁLCULO EM TEMPO REAL
+    private decimal Subtotal => carrinho.Sum(i => i.Price);
+
+    private decimal PercentualDesconto
+    {
+        get
+        {
+            // Regra: só calcula se tiver exatamente 1 de cada categoria (conforme regra do desafio)
+            var itensPorCategoria = carrinho.GroupBy(i => i.Category).ToDictionary(g => g.Key, g => g.Count());
+
+            bool temUmSanduba = itensPorCategoria.GetValueOrDefault("Sandwich") == 1;
+            bool temUmaBatata = itensPorCategoria.GetValueOrDefault("Side") == 1;
+            bool temUmRefri = itensPorCategoria.GetValueOrDefault("Drink") == 1;
+
+            // Verifica se não há excessos (mais de 1 item por categoria invalida o combo)
+            if (itensPorCategoria.Values.Any(v => v > 1)) return 0;
+
+            if (temUmSanduba && temUmaBatata && temUmRefri) return 0.20m;
+            if (temUmSanduba && temUmRefri) return 0.15m;
+            if (temUmSanduba && temUmaBatata) return 0.10m;
+
+            return 0;
+        }
+    }
+
+    private decimal ValorDesconto => Subtotal * PercentualDesconto;
+    private decimal TotalFinal => Subtotal - ValorDesconto;
+
+    protected override async Task OnInitializedAsync() =>
+        menu = await Http.GetFromJsonAsync<List<MenuItem>>("api/orders/menu");
+
+    private void AdicionarAoCarrinho(MenuItem i) { errorMessage = null; carrinho.Add(i); }
+
+    private string Traduzir(string c) => c switch { "Sandwich" => "Sanduíches", "Side" => "Acompanhamentos", "Drink" => "Bebidas", _ => c };
+    private string GetEmoji(string c) => c switch { "Sandwich" => "🍔", "Side" => "🍟", "Drink" => "🥤", _ => "🍴" };
+
+    async Task Finalizar()
+    {
+        errorMessage = null;
+        var res = await Http.PostAsJsonAsync("api/orders", new OrderRequest { ItemIds = carrinho.Select(i => i.Id).ToList() });
+        if (res.IsSuccessStatusCode)
+        {
+            var order = await res.Content.ReadFromJsonAsync<Order>();
+            pedidoIdRecente = order.Id;
+            carrinho.Clear();
+            mostrarSucesso = true;
+        }
+        else
+        {
+            errorMessage = await res.Content.ReadAsStringAsync();
+        }
+    }
+}
