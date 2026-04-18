@@ -74,11 +74,8 @@ public class OrderTests
     [Fact]
     public void Item_Que_Nao_Existe_No_Cardapio_Deve_Retornar_Erro()
     {
-        // O OrderService deve lidar com IDs inexistentes (ex: 99)
-        // Se sua API ainda não trata isso, adicione um try/catch no Service ou uma checagem de nulo
         var itemIds = new List<int> { 99 };
 
-        // Vamos ajustar o ValidateOrder para tratar isso:
         var validation = _service.ValidateOrder(itemIds);
         Assert.False(validation.Valid);
     }
@@ -107,7 +104,7 @@ public class OrderTests
     public void Item_Inexistente_Deve_Retornar_Erro_De_Validacao()
     {
         var service = new OrderService();
-        var itemIds = new List<int> { 999 }; // ID que não existe no cardápio
+        var itemIds = new List<int> { 999 };
 
         var validation = service.ValidateOrder(itemIds);
 

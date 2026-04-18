@@ -3,7 +3,6 @@
 @inject HttpClient Http
 
 <div class="container-fluid py-4">
-    <!-- CABEÇALHO DA TELA -->
     <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
         <div>
             <h2 class="fw-bold mb-0" style="color: #121212;">📋 Histórico de Pedidos</h2>
@@ -14,7 +13,6 @@
         </button>
     </div>
 
-    <!-- BUSCA -->
     <div class="row mb-4">
         <div class="col-md-5">
             <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden;">
@@ -40,7 +38,6 @@
     }
     else
     {
-        <!-- TABELA ESTILIZADA GH -->
         <div class="card border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -60,13 +57,11 @@
                                 <td>@o.Items.Count item(s)</td>
                                 <td class="fw-bold text-success">R$ @o.Total.ToString("F2")</td>
                                 <td class="text-center">
-                                    <!-- BOTÃO DETALHES AMARELO -->
                                     <button class="btn btn-warning btn-sm fw-bold me-2"
                                             style="border-radius: 8px; font-size: 12px; padding: 6px 15px;"
                                             @onclick="() => VerDetalhes(o)">
                                         VER DETALHES
                                     </button>
-                                    <!-- BOTÃO EXCLUIR PRETO/VERMELHO -->
                                     <button class="btn btn-outline-danger btn-sm fw-bold"
                                             style="border-radius: 8px; font-size: 12px; padding: 6px 15px;"
                                             @onclick="() => ConfirmarExclusao(o)">
@@ -82,7 +77,6 @@
     }
 </div>
 
-<!-- MODAL DETALHES (PADRÃO GH) -->
 @if (orderSelecionado != null)
 {
     <div class="modal fade show d-block" style="background: rgba(0,0,0,0.8);" tabindex="-1">
@@ -126,7 +120,6 @@
     </div>
 }
 
-<!-- MODAL CONFIRMAÇÃO EXCLUSÃO -->
 @if (orderParaExcluir != null)
 {
     <div class="modal fade show d-block" style="background: rgba(0,0,0,0.8);" tabindex="-1">

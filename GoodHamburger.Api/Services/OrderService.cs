@@ -17,16 +17,13 @@ public class OrderService
 
     public (bool Valid, string Message) ValidateOrder(List<int> itemIds)
     {
-        // Usamos FirstOrDefault para não dar erro de sistema (Crash) se o ID for inválido
         var items = itemIds.Select(id => Menu.FirstOrDefault(m => m.Id == id)).ToList();
 
-        // 1. Validar se todos os itens existem
         if (items.Any(i => i == null))
         {
             return (false, "Um ou mais itens informados não existem no cardápio.");
         }
 
-        // 2. Validar duplicidade por categoria (Regra do Desafio)
         var categoriasDuplicadas = items.GroupBy(i => i.Category)
                                        .Where(g => g.Count() > 1)
                                        .Select(g => g.Key).ToList();

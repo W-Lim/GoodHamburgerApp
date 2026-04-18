@@ -8,7 +8,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("https://localhost:7164/") // DEVE SER A MESMA PORTA DO SWAGGER
+    BaseAddress = new Uri("https://localhost:7164/")
 });
 
 await builder.Build().RunAsync();
